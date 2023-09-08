@@ -1,6 +1,6 @@
 from pybricks.ev3devices import ColorSensor
 
-EQUALS_TOLERENCE = 5
+EQUALS_TOLERENCE = 10
 
 class ColorHDR:
     def __init__(self, rgb: tuple[int, int, int], reflection: int, ambient: int):
@@ -48,5 +48,3 @@ class ColorHDR:
         """
         return self.Color[4]
     
-    def __str__(self) -> str:
-        return f"RGB: {self.rgb()}, Reflection: {self.reflection()}%, Ambient: {self.ambient()}%"
