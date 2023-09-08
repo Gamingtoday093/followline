@@ -12,13 +12,6 @@ from ColorDetection import ColorHDR
 # This program requires LEGO EV3 MicroPython v2.0 or higher.
 # Click "Open user guide" on the EV3 extension tab for more information.
 
-col1 = ColorHDR((0, 0, 0), 2, 6)
-col2 = ColorHDR((2, 3, 2), 0, 0)
-
-print(col1 == col2)
-input()
-
-
 def DetectingLineColor(sensor: ColorSensor) -> bool:
     # Read the color and reflection
     color = ColorHDR.fromColorSensor(sensor)

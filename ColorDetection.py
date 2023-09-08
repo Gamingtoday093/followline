@@ -47,3 +47,6 @@ class ColorHDR:
             to 100% (bright).
         """
         return self.Color[4]
+    
+    def __str__(self) -> str:
+        return f"RGB: {self.rgb()}, Reflection: {self.reflection()}%, Ambient: {self.ambient()}%"
