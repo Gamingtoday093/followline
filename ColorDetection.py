@@ -3,7 +3,7 @@ from pybricks.ev3devices import ColorSensor
 EQUALS_TOLERENCE = 10
 
 class ColorCompareUsage:
-    def __init__(self, useRGB, useReflection, useAmbient) -> None:
+    def __init__(self, useRGB: bool, useReflection: bool, useAmbient: bool) -> None:
         self.UseRGB = useRGB
         self.UseReflection = useReflection
         self.UseAmbient = useAmbient
@@ -16,6 +16,11 @@ class ColorHDR:
     def fromColorSensor(cls, sensor: ColorSensor):
         return cls(sensor.rgb(), sensor.reflection(), sensor.ambient())
 
+    @staticmethod
+    def equals(color1: int, color2: int) -> bool:
+        offset = color1 - color2
+        return offset <= EQUALS_TOLERENCE and offset >= -EQUALS_TOLERENCE
+    
     def __eq__(self, __value: object) -> bool:
         if not isinstance(__value, ColorHDR):
             return False
@@ -23,6 +28,8 @@ class ColorHDR:
         for c in range(len(self.Color)):
             offset = self.Color[c] - __value.Color[c]
             if offset > EQUALS_TOLERENCE or offset < -EQUALS_TOLERENCE:
+                return False
+            if not ColorHDR.equals(self.Color[c], __value.Color[c]):
                 return False
 
         return True
@@ -55,10 +62,18 @@ class ColorHDR:
         return self.Color[4]
     
     @staticmethod
-    def compare(color1, color2) -> (bool, bool, bool):
-        return True, False, False
+    def compare(color1, color2) -> ColorCompareUsage:
+        useRGB = False
+        useReflection = False
+        useAmbient = False
 
-a = ColorHDR((0, 0, 0), 0, 0)
-b = ColorHDR((0, 0, 0), 0, 0)
+        for c in range(len(color1.rgb())):
+            if not ColorHDR.equals(color1.rgb()[c], color2.rgb()[c]):
+                useRGB = True
 
-print(ColorHDR.compare(a, b))
+        useReflection = not ColorHDR.equals(color1.reflection(), color2.reflection())
+
+        useAmbient = not ColorHDR.equals(color1.ambient(), color2.ambient())
+
+        return ColorCompareUsage(useRGB, useReflection, useAmbient)
+        

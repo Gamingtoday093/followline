@@ -32,10 +32,22 @@ left_light = ColorSensor(Port.S2)
 right_light = ColorSensor(Port.S3)
 
 # Write your program here.
-linecolor = ColorHDR.fromColorSensor(left_light)
+def FindLineColor(floorcolor: ColorHDR) -> ColorHDR:
+    while ColorHDR.fromColorSensor(left_light) == floorcolor:
+        robot.drive(0, 45)
+        wait(1)
+    robot.stop()
+    return ColorHDR.fromColorSensor(left_light)
+
+floorcolor = ColorHDR.fromColorSensor(left_light)
+linecolor = FindLineColor(floorcolor)
 ev3.speaker.beep()
 
-wait(5000)
+#print(floorcolor.Color)
+#print(linecolor.Color)
+#exit()
+
+#wait(5000)
 
 def straightUntilLine(linecolor: ColorHDR):
     distance = 0
@@ -44,7 +56,11 @@ def straightUntilLine(linecolor: ColorHDR):
         robot.drive(100, 0)
         wait(1)
     
+    if ColorHDR.fromColorSensor(left_light) == linecolor:
+        robot.stop()
+        return True
     robot.stop()
+    return False
     if distance > 0:
         print(distance - robot.distance())
         robot.drive((distance - robot.distance()) * 4, 0)
@@ -53,10 +69,11 @@ def straightUntilLine(linecolor: ColorHDR):
         return
     robot.stop()
 
-def rotate(linecolor: ColorHDR):
-    if ColorHDR.fromColorSensor(left_light) == linecolor:
+def rotate(linecolor: ColorHDR, leftTriggered):
+    if ColorHDR.fromColorSensor(left_light) == linecolor or leftTriggered:
         angle = robot.angle()
-        robot.drive(70, 0)
+        robot.drive(50, 0)
+        # 70, 0
         wait(1001)
         while ColorHDR.fromColorSensor(right_light) != linecolor:
             robot.drive(0, -75)
@@ -69,7 +86,7 @@ def rotate(linecolor: ColorHDR):
         wait(1001)
         robot.stop()
     
-    elif ColorHDR.fromColorSensor(right_light) == linecolor:
+    elif ColorHDR.fromColorSensor(right_light) == linecolor or not leftTriggered:
         angle = robot.angle()
         robot.drive(70, 0)
         wait(1001)
@@ -111,24 +128,25 @@ def Align(linecolor):
     wait(1000)
     AlignTowardsLine(linecolor)
 
-#Align(linecolor)
+Align(linecolor)
+exit()
 #wait(500)
-#while True:
-#    straightUntilLine(linecolor)
-#    rotate(linecolor)
+while True:
+    leftTriggered = straightUntilLine(linecolor)
+    rotate(linecolor, leftTriggered)
 #    Align(linecolor)
 
-while True:
-    left_color = ColorHDR.fromColorSensor(left_light)
-    right_color = ColorHDR.fromColorSensor(right_light)
-    if left_color != linecolor and right_color != linecolor:
-        robot.drive(70, 0)
-        wait(1)
-    elif left_color == linecolor:
-        while ColorHDR.fromColorSensor(left_light) == linecolor:
-            robot.drive(0, -50)
-            wait(1)
-    elif right_color == linecolor:
-        while ColorHDR.fromColorSensor(right_light) == linecolor:
-            robot.drive(0, 50)
-            wait(1)
+#while True:
+#    left_color = ColorHDR.fromColorSensor(left_light)
+#    right_color = ColorHDR.fromColorSensor(right_light)
+#    if left_color != linecolor and right_color != linecolor:
+#        robot.drive(70, 0)
+#        wait(1)
+#    elif left_color == linecolor:
+#        while ColorHDR.fromColorSensor(left_light) == linecolor:
+#            robot.drive(0, -50)
+#            wait(1)
+#    elif right_color == linecolor:
+#        while ColorHDR.fromColorSensor(right_light) == linecolor:
+#            robot.drive(0, 50)
+#            wait(1)
