@@ -1,6 +1,7 @@
 from pybricks.ev3devices import ColorSensor
 
-EQUALS_TOLERENCE = 10
+EQUALS_TOLERENCE = 3
+LINE_BIAS = 1 / 3
 
 class ColorCompareUsage:
     def __init__(self, useRGB: bool, rgb: tuple[int, int, int], useReflection: bool, reflection: int, useAmbient: bool, ambient: int) -> None:
@@ -37,12 +38,17 @@ class ColorHDR:
 
     @staticmethod
     def equals(color1: int, color2: int) -> bool:
+        #print(str(color1) + " - " + str(color2))
+        if color1 < 0 or color2 < 0:
+            print(str(color1) + " - " + str(color2))
+            return True
         offset = color1 - color2
         return offset <= EQUALS_TOLERENCE and offset >= -EQUALS_TOLERENCE
     
     #Detectable colors
     def almostEqual(self, sensorColor: object, other: object) -> bool:
-        colAverage = int((self.average() + other.average()) / 2)
+        colAverage = float((self.average() + other.average()) / 2) - LINE_BIAS
+        #print(str(sensorColor.Color) + " (" + str(sensorColor.average()) + "), " + str(self.Color) + ", " + str(other.Color) + " (" + str(colAverage) + ")")
         if sensorColor.average() <= colAverage:
             return False
         return True
@@ -51,19 +57,16 @@ class ColorHDR:
         if not isinstance(__value, ColorHDR):
             return False
         
-        for c in range(len(self.rgb())):
-            if not ColorHDR.equals(self.rgb()[c], __value.rgb()[c]):
-                return False
+        #for c in range(len(self.rgb())):
+        #    if not ColorHDR.equals(self.rgb()[c], __value.rgb()[c]):
+        #        return False
         
-        return True
-
-        #print(self.Color)
         for c in range(len(self.Color)):
-            offset = self.Color[c] - __value.Color[c]
-            if offset > EQUALS_TOLERENCE or offset < -EQUALS_TOLERENCE:
-                return False
-            #if not ColorHDR.equals(self.Color[c], __value.Color[c]):
+            #offset = self.Color[c] - __value.Color[c]
+            #if offset > EQUALS_TOLERENCE or offset < -EQUALS_TOLERENCE:
             #    return False
+            if not ColorHDR.equals(self.Color[c], __value.Color[c]):
+                return False
 
         return True
     
@@ -77,12 +80,12 @@ class ColorHDR:
         for c in range(len(self.Color)):
             self.Color[c] /= value
 
-    def average(self) -> int:
+    def average(self) -> float:
         tot = 0
         for c in self.rgb():  # self.Color
             tot += c
         tot /= len(self.rgb())  # self.Color
-        return int(tot)
+        return tot
 
     def rgb(self) -> tuple[int, int, int]:
         """ rgb() -> tuple[int, int, int]
@@ -110,13 +113,16 @@ class ColorHDR:
             to 100% (bright).
         """
         return self.Color[4]
-    
+
+    def ValidColor(self):
+        return self.ambient() > 0
+
     @staticmethod
     def compare(color1, color2) -> ColorCompareUsage:
         """ compare(ColorHDR, ColorHDR) -> ColorCompareUsage: bool, bool, bool
 
             Returns:
-            
+            ColorCompareUsage which consists of 3 bools that describe what sensors are important
         """
         useRGB = False
         useReflection = False
@@ -130,5 +136,8 @@ class ColorHDR:
 
         useAmbient = not ColorHDR.equals(color1.ambient(), color2.ambient()) and (not useRGB or not useReflection)
 
+        if not useRGB and not useReflection and not useAmbient:
+            useRGB = True
+            print("Failed to find any different comparable Colors!")
         return ColorCompareUsage(useRGB, color1.rgb(), useReflection, color1.reflection(), useAmbient, color1.ambient())
         
