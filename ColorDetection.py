@@ -1,6 +1,6 @@
 from pybricks.ev3devices import ColorSensor
 
-EQUALS_TOLERENCE = 3
+EQUALS_TOLERENCE = 10
 
 class ColorCompareUsage:
     def __init__(self, useRGB: bool, rgb: tuple[int, int, int], useReflection: bool, reflection: int, useAmbient: bool, ambient: int) -> None:
@@ -13,7 +13,7 @@ class ColorCompareUsage:
 
 class ColorHDR:
     def __init__(self, rgb: tuple[int, int, int], reflection: int, ambient: int):
-        self.Color = (rgb[0], rgb[1], rgb[2], reflection, ambient)
+        self.Color = [rgb[0], rgb[1], rgb[2], reflection, ambient]
 
     @classmethod
     def fromColorSensor(cls, sensor: ColorSensor, compare: ColorCompareUsage = None):
@@ -40,11 +40,24 @@ class ColorHDR:
         offset = color1 - color2
         return offset <= EQUALS_TOLERENCE and offset >= -EQUALS_TOLERENCE
     
+    #Detectable colors
+    def almostEqual(self, sensorColor: object, other: object) -> bool:
+        colAverage = int((self.average() + other.average()) / 2)
+        if sensorColor.average() <= colAverage:
+            return False
+        return True
+
     def __eq__(self, __value: object) -> bool:
         if not isinstance(__value, ColorHDR):
             return False
         
-        print(self.Color)
+        for c in range(len(self.rgb())):
+            if not ColorHDR.equals(self.rgb()[c], __value.rgb()[c]):
+                return False
+        
+        return True
+
+        #print(self.Color)
         for c in range(len(self.Color)):
             offset = self.Color[c] - __value.Color[c]
             if offset > EQUALS_TOLERENCE or offset < -EQUALS_TOLERENCE:
@@ -54,6 +67,23 @@ class ColorHDR:
 
         return True
     
+    # Average color
+    
+    def add(self, value: object):
+        for c in range(len(self.Color)):
+            self.Color[c] += value.Color[c]
+    
+    def divide(self, value: int):
+        for c in range(len(self.Color)):
+            self.Color[c] /= value
+
+    def average(self) -> int:
+        tot = 0
+        for c in self.rgb():  # self.Color
+            tot += c
+        tot /= len(self.rgb())  # self.Color
+        return int(tot)
+
     def rgb(self) -> tuple[int, int, int]:
         """ rgb() -> tuple[int, int, int]
 
