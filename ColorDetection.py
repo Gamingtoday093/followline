@@ -31,6 +31,8 @@ class ColorHDR:
         ambient = 0
         if compare is None or compare.UseAmbient:
             ambient = sensor.ambient()
+            if ambient < 0:
+                ambient = 0
         else:
             ambient = compare.Ambient
         
