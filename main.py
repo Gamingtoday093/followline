@@ -54,7 +54,7 @@ def FindLineColor(floorcolor: ColorHDR) -> ColorHDR:
     color = ColorHDR.fromColorSensor(right_light)
     startAngle = robot.angle()
     while (color == floorcolor or not color.ValidColor()) and GetAngleBetween(robot.angle(), startAngle) <= 360:
-        robot.drive(0, -45)
+        robot.drive(0, -65)
         color = ColorHDR.fromColorSensor(right_light)
         wait(1)
     robot.stop()
@@ -69,6 +69,8 @@ floorcolor = ColorHDR.fromColorSensor(left_light)
 ev3.speaker.beep()
 linecolor = FindLineColor(floorcolor)
 compare = ColorHDR.compare(floorcolor, linecolor)
+print(linecolor.Color)
+print(floorcolor.Color)
 print(compare.UseRGB)
 print(compare.UseReflection)
 print(compare.UseAmbient)
@@ -151,7 +153,7 @@ def RotateAtIntersection(floorcolor: ColorHDR, linecolor: ColorHDR, compare: Col
 
         robot.stop()
 
-def StraightUntilLine(floorcolor: ColorHDR, linecolor: ColorHDR):
+def StraightUntilLine(floorcolor: ColorHDR, linecolor: ColorHDR) -> bool:
     ev3.screen.draw_image(0, 0, ImageFile.FORWARD)
 
     distance = 0
@@ -181,24 +183,37 @@ def StraightUntilLine(floorcolor: ColorHDR, linecolor: ColorHDR):
         return
     robot.stop()
 
-#ev3.speaker.play_file("/home/robot/followline/DejaVu.wav")
+FORWARD = 0
+LEFT = 1
+RIGHT = 2
+
+foorcolorReflection = floorcolor.reflection()
+def IsLineColor(reflection: int) -> bool:
+    return reflection > foorcolorReflection
+
+def DriveAndTurnFastFast():
+    left_reflection = left_light.reflection()
+    right_reflection = right_light.reflection()
+    if not IsLineColor(left_reflection) and not IsLineColor(right_reflection):
+        robot.drive(200, 0)
+        wait(1)
+    elif IsLineColor(left_reflection):
+        while IsLineColor(left_light.reflection()):
+            robot.drive(100, -140)
+            wait(1)
+    elif IsLineColor(right_reflection):
+        while IsLineColor(right_light.reflection()):
+            robot.drive(100, 140)
+            wait(1)
+
 Align(floorcolor, linecolor, compare)
 ev3.speaker.play_file(SoundFile.KUNG_FU)
-while True:
-    leftTriggered = StraightUntilLine(floorcolor, linecolor)
-    RotateAtIntersection(floorcolor, linecolor, compare, leftTriggered)
 
 while True:
-    left_color = ColorHDR.fromColorSensor(left_light, compare)
-    right_color = ColorHDR.fromColorSensor(right_light, compare)
-    if not linecolor.almostEqual(left_color, floorcolor) and not linecolor.almostEqual(right_color, floorcolor):
-        robot.drive(70, 0)
-        wait(1)
-    elif linecolor.almostEqual(left_color, floorcolor):
-        while linecolor.almostEqual(ColorHDR.fromColorSensor(left_light, compare), floorcolor):
-            robot.drive(20, -70)
-            wait(1)
-    elif linecolor.almostEqual(right_color, floorcolor):
-        while linecolor.almostEqual(ColorHDR.fromColorSensor(right_light, compare), floorcolor):
-            robot.drive(20, 70)
-            wait(1)
+    # Speedmode
+    DriveAndTurnFastFast()
+    continue
+
+    # Linemode
+    leftTriggered = StraightUntilLine(floorcolor, linecolor)
+    RotateAtIntersection(floorcolor, linecolor, compare, leftTriggered)
