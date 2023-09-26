@@ -203,5 +203,4 @@ def Start(Speedmode: bool):
             leftTriggered = StraightUntilLine(floorcolor, linecolor)
             RotateAtIntersection(floorcolor, linecolor, compare, leftTriggered)
 
-if __name__ == "__main__":
-    Start(Speedmode=True)
+Start(Speedmode=True)
