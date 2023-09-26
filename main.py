@@ -49,7 +49,6 @@ def SearchLineColor(floorcolor: ColorHDR) -> ColorHDR:
     robot.stop()
     return color
 
-# Write your program here.
 def FindLineColor(floorcolor: ColorHDR) -> ColorHDR:
     color = ColorHDR.fromColorSensor(right_light)
     startAngle = robot.angle()
@@ -106,17 +105,16 @@ def Align(floorcolor: ColorHDR, linecolor: ColorHDR, compare: ColorCompareUsage)
     AlignTowardsLine(floorcolor, linecolor, compare)
 
 def RotateAtIntersection(floorcolor: ColorHDR, linecolor: ColorHDR, compare: ColorCompareUsage, leftTriggered: bool):
-    if leftTriggered:  # or ColorHDR.fromColorSensor(left_light) == linecolor
+    if leftTriggered:
         ev3.screen.draw_image(0, 0, ImageFile.LEFT)
         robot.drive(60, 0)
-        # 70, 0
         wait(1000)
+
         while not linecolor.almostEqual(ColorHDR.fromColorSensor(right_light, compare), floorcolor):
             robot.drive(0, -75)
             wait(1)
 
         robot.stop()
-
         robot.reset()
         while not linecolor.almostEqual(ColorHDR.fromColorSensor(left_light, compare), floorcolor):
             robot.drive(0, 75)
@@ -128,18 +126,16 @@ def RotateAtIntersection(floorcolor: ColorHDR, linecolor: ColorHDR, compare: Col
         else:
             robot.turn(-45)
     
-        robot.stop()
-    
-    elif not leftTriggered:  # or ColorHDR.fromColorSensor(right_light) == linecolor
+    elif not leftTriggered:
         ev3.screen.draw_image(0, 0, ImageFile.RIGHT)
         robot.drive(60, 0)
         wait(1000)
+
         while not linecolor.almostEqual(ColorHDR.fromColorSensor(left_light, compare), floorcolor):
             robot.drive(0, 75)
             wait(1)
         
         robot.stop()
-
         robot.reset()
         while not linecolor.almostEqual(ColorHDR.fromColorSensor(right_light, compare), floorcolor):
             robot.drive(0, -75)
@@ -151,16 +147,14 @@ def RotateAtIntersection(floorcolor: ColorHDR, linecolor: ColorHDR, compare: Col
         else:
             robot.turn(45)
 
-        robot.stop()
+    robot.stop()
 
 def StraightUntilLine(floorcolor: ColorHDR, linecolor: ColorHDR) -> bool:
     ev3.screen.draw_image(0, 0, ImageFile.FORWARD)
 
-    distance = 0
     leftDetectLine = linecolor.almostEqual(ColorHDR.fromColorSensor(left_light, compare), floorcolor)
     rightDetectLine = linecolor.almostEqual(ColorHDR.fromColorSensor(right_light, compare), floorcolor)
     while not leftDetectLine and not rightDetectLine:
-        distance = robot.distance()
         robot.drive(100, 0)
         leftDetectLine = linecolor.almostEqual(ColorHDR.fromColorSensor(left_light, compare), floorcolor)
         rightDetectLine = linecolor.almostEqual(ColorHDR.fromColorSensor(right_light, compare), floorcolor)
@@ -175,23 +169,14 @@ def StraightUntilLine(floorcolor: ColorHDR, linecolor: ColorHDR) -> bool:
         return StraightUntilLine(floorcolor, linecolor)
 
     return leftDetectLine
-    if distance > 0:
-        print(distance - robot.distance())
-        robot.drive((distance - robot.distance()) * 4, 0)
-        wait(250)
-    else:
-        return
-    robot.stop()
 
-FORWARD = 0
-LEFT = 1
-RIGHT = 2
-
-foorcolorReflection = floorcolor.reflection()
+foorcolorReflection: int = floorcolor.reflection()
+linecolorReflection: int = linecolor.reflection()
+lineHasLowerReflection: bool = linecolorReflection < foorcolorReflection
 def IsLineColor(reflection: int) -> bool:
-    return reflection > foorcolorReflection
+    return reflection > foorcolorReflection or (lineHasLowerReflection and reflection <= linecolorReflection)
 
-def DriveAndTurnFastFast():
+def DriveAndTurnFast():
     left_reflection = left_light.reflection()
     right_reflection = right_light.reflection()
     if not IsLineColor(left_reflection) and not IsLineColor(right_reflection):
@@ -209,11 +194,14 @@ def DriveAndTurnFastFast():
 Align(floorcolor, linecolor, compare)
 ev3.speaker.play_file(SoundFile.KUNG_FU)
 
-while True:
-    # Speedmode
-    DriveAndTurnFastFast()
-    continue
+def Start(Speedmode: bool):
+    if Speedmode: # Speedmode
+        while True:
+            DriveAndTurnFast()
+    else: # Linemode
+        while True:
+            leftTriggered = StraightUntilLine(floorcolor, linecolor)
+            RotateAtIntersection(floorcolor, linecolor, compare, leftTriggered)
 
-    # Linemode
-    leftTriggered = StraightUntilLine(floorcolor, linecolor)
-    RotateAtIntersection(floorcolor, linecolor, compare, leftTriggered)
+if __name__ == "__main__":
+    Start(Speedmode=True)
