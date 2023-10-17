@@ -43,30 +43,20 @@ def GetAngleBetween(angle1: int, angle2: int) -> int:
 def SearchLineColor(floorcolor: ColorHDR) -> ColorHDR:
     color = ColorHDR.fromColorSensor(right_light)
     while color == floorcolor or not color.ValidColor():
-        robot.drive(100, 0)
-        print("---")
-        print(color.Color)
-        print(ColorHDR.fromColorSensor(left_light).Color + f"None? {}")
-        print("---")
-        color.updateFromColorSensor(right_light)
-        if color.NoneColor() or ColorHDR.fromColorSensor(left_light).NoneColor():
-            robot.drive(-75, 0)
-            wait(1000)
-            robot.turn(90)
-            return SearchLineColor(floorcolor)
+        robot.drive(100, -20)
+        color = ColorHDR.fromColorSensor(right_light)
         wait(1)
     robot.stop()
-
     return color
 
 def FindLineColor(floorcolor: ColorHDR) -> ColorHDR:
     color = ColorHDR.fromColorSensor(right_light)
     startAngle = robot.angle()
-    #while (color == floorcolor or not color.ValidColor()) and GetAngleBetween(robot.angle(), startAngle) <= 360:
-    #    robot.drive(0, -65)
-    #    color = ColorHDR.fromColorSensor(right_light)
-    #    wait(1)
-    #robot.stop()
+    while (color == floorcolor or not color.ValidColor()) and GetAngleBetween(robot.angle(), startAngle) <= 360:
+        robot.drive(0, -65)
+        color = ColorHDR.fromColorSensor(right_light)
+        wait(1)
+    robot.stop()
 
     if (color == floorcolor or not color.ValidColor()):
         return SearchLineColor(floorcolor)
@@ -75,7 +65,7 @@ def FindLineColor(floorcolor: ColorHDR) -> ColorHDR:
 
 ev3.screen.draw_image(0, 0, ImageFile.AWAKE)
 floorcolor = ColorHDR.fromColorSensor(left_light)
-#ev3.speaker.beep()
+ev3.speaker.beep()
 linecolor = FindLineColor(floorcolor)
 compare = ColorHDR.compare(floorcolor, linecolor)
 print(linecolor.Color)
@@ -84,8 +74,6 @@ print(compare.UseRGB)
 print(compare.UseReflection)
 print(compare.UseAmbient)
 ev3.speaker.play_file(SoundFile.READY)
-
-raise Exception("DONE")
 
 def AlignTowardsLine(floorcolor: ColorHDR, linecolor: ColorHDR, compare: ColorCompareUsage):
     while not linecolor.almostEqual(ColorHDR.fromColorSensor(left_light, compare), floorcolor):

@@ -1,6 +1,6 @@
 from pybricks.ev3devices import ColorSensor
 
-EQUALS_TOLERENCE = 3
+EQUALS_TOLERENCE = 30
 LINE_BIAS = 1 / 3
 
 class ColorCompareUsage:
@@ -35,8 +35,37 @@ class ColorHDR:
                 ambient = 0
         else:
             ambient = compare.Ambient
-        
+
         return cls(rgb, reflection, ambient)
+
+    def updateFromColorSensor(self, sensor: ColorSensor, compare: ColorCompareUsage = None):
+        rgb = None
+        if compare is None or compare.UseRGB:
+            rgb = sensor.rgb()
+        else:
+            rgb = compare.RGB
+        
+        self.Color[0] = rgb[0]
+        self.Color[1] = rgb[1]
+        self.Color[2] = rgb[2]
+
+        reflection = 0
+        if compare is None or compare.UseReflection:
+            reflection = sensor.reflection()
+        else:
+            reflection = compare.Reflection
+
+        self.Color[3] = reflection
+
+        ambient = 0
+        if compare is None or compare.UseAmbient:
+            ambient = sensor.ambient()
+            if ambient < 0:
+                ambient = 0
+        else:
+            ambient = compare.Ambient
+        
+        self.Color[4] = ambient
 
     @staticmethod
     def equals(color1: int, color2: int) -> bool:
@@ -48,13 +77,6 @@ class ColorHDR:
         return offset <= EQUALS_TOLERENCE and offset >= -EQUALS_TOLERENCE
     
     #Detectable colors
-    def almostEqual(self, sensorColor: object, other: object) -> bool:
-        colAverage = float((self.average() + other.average()) / 2) - LINE_BIAS
-        #print(str(sensorColor.Color) + " (" + str(sensorColor.average()) + "), " + str(self.Color) + ", " + str(other.Color) + " (" + str(colAverage) + ")")
-        if sensorColor.average() <= colAverage:
-            return False
-        return True
-
     def __eq__(self, __value: object) -> bool:
         if not isinstance(__value, ColorHDR):
             return False
@@ -63,15 +85,26 @@ class ColorHDR:
         #    if not ColorHDR.equals(self.rgb()[c], __value.rgb()[c]):
         #        return False
         
-        for c in range(len(self.Color)):
+        if not ColorHDR.equals(self.reflection(), __value.reflection()):
+            return False
+
+        #for c in range(len(self.Color)):
             #offset = self.Color[c] - __value.Color[c]
             #if offset > EQUALS_TOLERENCE or offset < -EQUALS_TOLERENCE:
             #    return False
-            if not ColorHDR.equals(self.Color[c], __value.Color[c]):
-                return False
+        #    if not ColorHDR.equals(self.Color[c], __value.Color[c]):
+        #        return False
 
         return True
     
+    def almostEqual(self, sensorColor: object, other: object) -> bool:
+        return self.__eq__(sensorColor)
+        colAverage = float((self.average() + other.average()) / 2) - LINE_BIAS
+        #print(str(sensorColor.Color) + " (" + str(sensorColor.average()) + "), " + str(self.Color) + ", " + str(other.Color) + " (" + str(colAverage) + ")")
+        if sensorColor.average() <= colAverage:
+            return False
+        return True
+
     # Average color
     
     def add(self, value: object):
@@ -118,6 +151,12 @@ class ColorHDR:
 
     def ValidColor(self):
         return self.ambient() > 0
+
+    def NoneColor(self):
+        for c in range(len(self.Color) - 2): # Skip Ambient
+            if self.Color[c] != 0:
+                return False
+        return True
 
     @staticmethod
     def compare(color1, color2) -> ColorCompareUsage:
