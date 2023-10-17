@@ -20,6 +20,7 @@ ev3 = EV3Brick()
 left_motor = Motor(Port.B)
 right_motor = Motor(Port.C)
 robot = DriveBase(left_motor, right_motor, wheel_diameter=55.5, axle_track=104)
+sonar = UltrasonicSensor(Port.S4)
 
 # Sensor definitions
 left_light = ColorSensor(Port.S2)
@@ -197,6 +198,7 @@ def StraightUntilLine(floorcolor: ColorHDR, linecolor: ColorHDR) -> bool:
 floorcolorReflection = floorcolor.reflection()
 linecolorReflection = linecolor.reflection()
 lineHasLowerReflection = linecolorReflection < floorcolorReflection
+
 def IsLineColor(reflection: int) -> bool:
     return reflection <= linecolorReflection + 10
     return reflection > floorcolorReflection or (lineHasLowerReflection and reflection <= linecolorReflection)
@@ -218,6 +220,48 @@ def DriveAndTurnFast():
 
 #AlignSingleSensor(floorcolor, linecolor, right_light, compare)
 #Align(floorcolor, linecolor, compare)
+def SingleSensorRun():
+    right_reflection = right_light.reflection()
+    left_reflection = left_light.reflection()
+
+    if IsLineColor(right_reflection):
+        robot.drive(50, 0)
+        if IsLineColor(left_reflection):
+            Park()
+    
+    elif not IsLineColor(right_reflection):
+        robot.drive(0, -75)
+        wait(1)
+        while not IsLineColor(right_reflection):
+            robot.drive(50, 5)
+    elif not IsLineColor(right_reflection):
+        robot.drive(0, 75)
+        wait(1)
+        while not IsLineColor(right_reflection):
+            robot.drive(50, -5)
+        
+        robot.reset()
+
+def Park():
+    robot.stop()
+    wait(1)
+    robot.drive(0, -45)
+    if sonar.distance() >= 2000:
+        robot.drive(10, -45)
+        wait(1001)
+        robot.stop()
+        wait(1001) #Park time
+        robot.drive(-10, -45)
+        wait(2002)
+        return True
+    else:
+        robot.drive(0, 45)
+        wait(1001)
+        robot.stop()
+        wait(1)
+        return False
+
+Align(floorcolor, linecolor, compare)
 ev3.speaker.play_file(SoundFile.KUNG_FU)
 
 raise Exception("DONE")
