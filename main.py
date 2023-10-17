@@ -42,50 +42,62 @@ def GetAngleBetween(angle1: int, angle2: int) -> int:
 
 def SearchLineColor(floorcolor: ColorHDR) -> ColorHDR:
     color = ColorHDR.fromColorSensor(right_light)
-    while color == floorcolor or not color.ValidColor():
+    while color == floorcolor:
         robot.drive(100, 0)
-        print("---")
         print(color.Color)
-        print(ColorHDR.fromColorSensor(left_light).Color + f"None? {}")
-        print("---")
         color.updateFromColorSensor(right_light)
         if color.NoneColor() or ColorHDR.fromColorSensor(left_light).NoneColor():
-            robot.drive(-75, 0)
+            robot.drive(-100, 0)
             wait(1000)
             robot.turn(90)
             return SearchLineColor(floorcolor)
         wait(1)
-    robot.stop()
+    #robot.stop()
+    robot.drive(-10, 0)
+    wait(1)
 
     return color
 
 def FindLineColor(floorcolor: ColorHDR) -> ColorHDR:
     color = ColorHDR.fromColorSensor(right_light)
-    startAngle = robot.angle()
-    #while (color == floorcolor or not color.ValidColor()) and GetAngleBetween(robot.angle(), startAngle) <= 360:
+    #startAngle = robot.angle()
+    #while (color == floorcolor) and GetAngleBetween(robot.angle(), startAngle) <= 360:
     #    robot.drive(0, -65)
-    #    color = ColorHDR.fromColorSensor(right_light)
+    #    color.updateFromColorSensor(right_light)
     #    wait(1)
     #robot.stop()
 
-    if (color == floorcolor or not color.ValidColor()):
+    if (color == floorcolor):
         return SearchLineColor(floorcolor)
 
     return color
 
 ev3.screen.draw_image(0, 0, ImageFile.AWAKE)
 floorcolor = ColorHDR.fromColorSensor(left_light)
-#ev3.speaker.beep()
+ev3.speaker.beep()
 linecolor = FindLineColor(floorcolor)
 compare = ColorHDR.compare(floorcolor, linecolor)
 print(linecolor.Color)
 print(floorcolor.Color)
 print(compare.UseRGB)
 print(compare.UseReflection)
-print(compare.UseAmbient)
 ev3.speaker.play_file(SoundFile.READY)
 
-raise Exception("DONE")
+def AlignSingleSensor(floorcolor: ColorHDR, linecolor: ColorHDR, lineSensor: ColorSensor, compare: ColorCompareUsage):
+    sensorColor = ColorHDR.fromColorSensor(lineSensor)
+    while linecolor.almostEqual(sensorColor, floorcolor):
+        robot.drive(100, 0)
+        sensorColor.updateFromColorSensor(linecolor)
+        wait(1)
+    
+    rotMultiplier = 1
+    if lineSensor == left_light:
+        rotMultiplier = -1
+
+    while not linecolor.almostEqual(sensorColor, floorcolor):
+        robot.drive(0, rotMultiplier * 90)
+        sensorColor.updateFromColorSensor(linecolor)
+        wait(1)
 
 def AlignTowardsLine(floorcolor: ColorHDR, linecolor: ColorHDR, compare: ColorCompareUsage):
     while not linecolor.almostEqual(ColorHDR.fromColorSensor(left_light, compare), floorcolor):
@@ -204,8 +216,11 @@ def DriveAndTurnFast():
             robot.drive(100, 140)
             wait(1)
 
-Align(floorcolor, linecolor, compare)
+#AlignSingleSensor(floorcolor, linecolor, right_light, compare)
+#Align(floorcolor, linecolor, compare)
 ev3.speaker.play_file(SoundFile.KUNG_FU)
+
+raise Exception("DONE")
 
 def Start(Speedmode: bool):
     if Speedmode: # Speedmode
