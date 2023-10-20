@@ -27,10 +27,10 @@ left_light = ColorSensor(Port.S2)
 right_light = ColorSensor(Port.S3)
 
 def GetAverageColor(sensor: ColorSensor) -> ColorHDR:
-    sum = ColorHDR((0, 0, 0), 0, 0)
+    sum = ColorHDR((0, 0, 0), 0)
     for x in range(20):
         sum.add(ColorHDR.fromColorSensor(sensor))
-        print(ColorHDR.fromColorSensor(sensor).Color)
+        robot.drive(10, 0)
         wait(1)
     sum.divide(20)
     return sum
@@ -72,6 +72,43 @@ def FindLineColor(floorcolor: ColorHDR) -> ColorHDR:
         return SearchLineColor(floorcolor)
 
     return color
+
+def GetVector(point1: tuple, point2: tuple) -> tuple:
+    return (point1[0] - point2[0], point1[1] - point2[1])
+
+def GetMagnitude(point: tuple) -> float:
+    return max(0.000000001, math.sqrt((point[0] * point[0]) + (point[1] * point[1])))
+
+def GetNormalized(point: tuple) -> tuple:
+    factor = GetMagnitude(point)
+    return (point[0] / factor, point[1] / factor)
+
+def Multiply(point1: tuple, point2: tuple) -> float:
+    return (point1[0] * point2[0]) + (point1[1] * point2[1])
+
+def GetAngle(point1: tuple, point2: tuple) -> float:
+    return math.degrees(math.acos(Multiply(point1, point2) / (GetMagnitude(point1) * GetMagnitude(point2))))
+
+#targets = [(0, 0), (-100, 100), (-120, 120), (150, 150)]
+targets = [(0, 0), (100, 0), (100, 100), (0, 100)]
+currentTarget = 0
+
+def GoToNextPosition(index: int):
+    forwardVector = GetVector(targets[index], targets[currentTarget])
+    alignVector = GetNormalized(GetVector(targets[currentTarget], targets[index - 1]))
+
+    turnAngle = GetAngle(GetNormalized(forwardVector), alignVector)
+    driveDistance = GetMagnitude(forwardVector)
+
+    robot.turn(turnAngle)
+    wait(500)
+    robot.straight(driveDistance)
+
+while True:
+    for i in range(1, len(targets)):
+        GoToNextPosition(i)
+        currentTarget = i
+    currentTarget = 0
 
 ev3.screen.draw_image(0, 0, ImageFile.AWAKE)
 floorcolor = ColorHDR.fromColorSensor(left_light)
@@ -128,6 +165,7 @@ def Align(floorcolor: ColorHDR, linecolor: ColorHDR, compare: ColorCompareUsage)
     robot.drive(75, 0)
     wait(1000)
     AlignTowardsLine(floorcolor, linecolor, compare)
+    
 
 def RotateAtIntersection(floorcolor: ColorHDR, linecolor: ColorHDR, compare: ColorCompareUsage, leftTriggered: bool):
     if leftTriggered:
