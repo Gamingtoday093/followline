@@ -104,11 +104,11 @@ def GoToNextPosition(index: int):
     wait(500)
     robot.straight(driveDistance)
 
-while True:
-    for i in range(1, len(targets)):
-        GoToNextPosition(i)
-        currentTarget = i
-    currentTarget = 0
+#while True:
+  #  for i in range(1, len(targets)):
+   #     GoToNextPosition(i)
+    #    currentTarget = i
+    #currentTarget = 0
 
 ev3.screen.draw_image(0, 0, ImageFile.AWAKE)
 floorcolor = ColorHDR.fromColorSensor(left_light)
@@ -262,22 +262,40 @@ def DriveAndTurnFast():
 
 #AlignSingleSensor(floorcolor, linecolor, right_light, compare)
 #Align(floorcolor, linecolor, compare)
+global ParkTimer
+global Turning
+Turning = 0
+ParkTimer = 0
 def SingleSensorRun():
     right_reflection = right_light.reflection()
     left_reflection = left_light.reflection()
-    if not IsLineColor(right_reflection):
+    global ParkTimer 
+    global Turning
+    if(ParkTimer > 0):
+       print (ParkTimer)
+    if IsLineColor(right_reflection):
         robot.drive(100,0)
-    elif IsLineColor(right_reflection):
-        while(IsLineColor(right_light.reflection())):
-            robot.drive(50,50)
+    elif not IsLineColor(right_reflection):
+        while(not IsLineColor(right_light.reflection()) and Turning == 0):
+            robot.drive(75,75)
+            Turning = Turning+1
             wait(1)
-    if IsLineColor(left_reflection):
-        Park()
-        wait(500)
-        ev3.speaker.play_file(SoundFile.READY)
-        UnPark()
-
-        raise Exception("DONE")
+            if (Turning == 30):
+                while(not IsLineColor(right_light.reflection()) and Turning > 0):
+                    robot.drive(75,-75)
+                    Turning = 10
+    if IsLineColor(left_reflection) and ParkTimer == 0:
+         
+        if Park():
+            wait(500)
+            ParkTimer=500
+            ev3.speaker.play_file(SoundFile.READY)
+            UnPark()
+            ev3.speaker.beep()
+ 
+    if(ParkTimer > 0):
+        ParkTimer = ParkTimer-1
+    wait(1)
         #UnPark()
     #elif IsLineColor(right_reflection) and turn == -1:
     #    robot.drive(0,-50);
@@ -316,20 +334,23 @@ def SingleSensorRun():
     #    while IsLineColor(right_reflection):
     #        robot.drive(50, -15)
     #        wait(1001)
-        robot.reset()
+      #  robot.reset()
 
 def Park():
     robot.stop()
     robot.turn(-45)
+    wait(500)
     print (sonar.distance())
     if sonar.distance() >= 350: # Parking spot Empty
         robot.turn(45)
+        wait(500)
         robot.drive(90, 0)
         #robot.drive(10, -45)
         wait(2000)
         robot.stop()
         #wait(1001) #Park time
         robot.turn(-90)
+        wait(500)
         #robot.drive(-10, -45)
         robot.drive(100, 0)
         wait(1000)
@@ -343,10 +364,9 @@ def Park():
 def UnPark():
     robot.drive(-100, 0)
     wait(1100)
-    robot.turn(90)
     robot.stop()
-    robot.drive(-90, 0)
-    wait(2000)
+    robot.turn(90)
+    wait(500)
     robot.stop()
 
 
