@@ -137,7 +137,6 @@ print(compare.UseReflection)
 print("-- READY --")
 #ev3.speaker.play_file(SoundFile.READY)
 
-raise Exception("Done")
 
 def AlignSingleSensor(floorcolor: ColorHDR, linecolor: ColorHDR, lineSensor: ColorSensor, compare: ColorCompareUsage):
     sensorColor = ColorHDR.fromColorSensor(lineSensor)
@@ -260,6 +259,15 @@ def IsLineColor(reflection: int) -> bool:
     return reflection <= linecolorReflection + 10
     return reflection > floorcolorReflection or (lineHasLowerReflection and reflection <= linecolorReflection)
 
+lineRGB = linecolor.rgb()
+def isLineColorRGB(rgb):
+    for i in range(len(rgb)): 
+        if not ColorHDR.equals(rgb[i],lineRGB[i]):
+            return False
+    return True
+            
+
+
 def DriveAndTurnFast():
     left_reflection = left_light.reflection()
     right_reflection = right_light.reflection()
@@ -281,36 +289,42 @@ global ParkTimer
 global Turning
 Turning = 0
 ParkTimer = 0
+
 def SingleSensorRun():
-    right_reflection = right_light.reflection()
-    left_reflection = left_light.reflection()
+    #right_reflection = right_light.reflection()
+    #left_reflection = left_light.reflection()
     global ParkTimer 
-    global Turning
     if(ParkTimer > 0):
        print (ParkTimer)
-    if IsLineColor(right_reflection):
+   # if IsLineColor(right_reflection):
+    if isLineColorRGB(right_light.rgb()):
         robot.drive(100,0)
-    elif not IsLineColor(right_reflection):
-        while(not IsLineColor(right_light.reflection()) and Turning == 0):
+    #elif not IsLineColor(right_reflection):
+    elif not isLineColorRGB(right_light.rgb()):
+        startAngle = robot.angle()
+        while(not isLineColorRGB(right_light.rgb()) and GetAngleBetween(startAngle, robot.angle())<30):
             robot.drive(75,75)
-            Turning = Turning+1
+            print(GetAngleBetween(startAngle, robot.angle()))
             wait(1)
-            if (Turning == 30):
-                while(not IsLineColor(right_light.reflection()) and Turning > 0):
-                    robot.drive(75,-75)
-                    Turning = 10
-    if IsLineColor(left_reflection) and ParkTimer == 0:
-         
-        if Park():
-            wait(500)
-            ParkTimer=500
-            ev3.speaker.play_file(SoundFile.READY)
-            UnPark()
-            ev3.speaker.beep()
+        while not isLineColorRGB(right_light.rgb()):
+            robot.drive(75,-75)
+            wait(1)
+           # if (G == 30):
+           #     while(not IsLineColor(right_light.reflection()) and Turning > 0):
+            #        robot.drive(75,-75)
+             #       Turning = 0
+    #if IsLineColor(left_reflection) and ParkTimer == 0:
+        pass
+       # if Park():
+       #     wait(500)
+       #     ParkTimer=500
+       #     ev3.speaker.play_file(SoundFile.READY)
+       #     UnPark()
+       #     ev3.speaker.beep()
  
-    if(ParkTimer > 0):
-        ParkTimer = ParkTimer-1
-    wait(1)
+    #if(ParkTimer > 0):
+    #    ParkTimer = ParkTimer-1
+    #wait(1)
         #UnPark()
     #elif IsLineColor(right_reflection) and turn == -1:
     #    robot.drive(0,-50);

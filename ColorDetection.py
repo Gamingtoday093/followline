@@ -60,12 +60,13 @@ class ColorHDR:
         if not isinstance(__value, ColorHDR):
             return False
         
-        #if ColorHDR.equals(self.reflection(), __value.reflection()):
-        #    for c in range(len(self.rgb())):
-        #        if not ColorHDR.equals(self.rgb()[c], __value.rgb()[c]):
-        #            return False
-        #    return True
-        
+        if ColorHDR.equals(self.reflection(), __value.reflection()):
+            for c in range(len(self.rgb())):
+                if not ColorHDR.equals(self.rgb()[c], __value.rgb()[c]):
+                    return False
+            return True
+        return False
+    
         return ColorHDR.equals(self.reflection(), __value.reflection())
     
     def almostEqual(self, sensorColor: object, other: object) -> bool:
