@@ -27,10 +27,10 @@ left_light = ColorSensor(Port.S2)
 right_light = ColorSensor(Port.S3)
 
 def GetAverageColor(sensor: ColorSensor) -> ColorHDR:
-    sum = ColorHDR((0, 0, 0), 0, 0)
+    sum = ColorHDR((0, 0, 0), 0)
     for x in range(20):
         sum.add(ColorHDR.fromColorSensor(sensor))
-        print(ColorHDR.fromColorSensor(sensor).Color)
+        robot.drive(10, 0)
         wait(1)
     sum.divide(20)
     return sum
