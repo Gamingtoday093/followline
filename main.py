@@ -28,11 +28,21 @@ right_light = ColorSensor(Port.S3)
 
 def GetAverageColor(sensor: ColorSensor) -> ColorHDR:
     sum = ColorHDR((0, 0, 0), 0)
+    lowest = -1
+    highest = -1
     for x in range(20):
+        newColor = ColorHDR.fromColorSensor(sensor)
+        if lowest == -1 or newColor.reflection() < lowest:
+            lowest = newColor.reflection()
+        if highest == -1 or newColor.reflection() > highest:
+            highest = newColor.reflection()
         sum.add(ColorHDR.fromColorSensor(sensor))
         robot.drive(10, 0)
         wait(1)
     sum.divide(20)
+    print(lowest)
+    print(highest)
+    print(sum.reflection())
     return sum
 
 def GetAngleBetween(angle1: int, angle2: int) -> int:
@@ -73,21 +83,26 @@ def FindLineColor(floorcolor: ColorHDR) -> ColorHDR:
 
     return color
 
-def GetVector(point1: tuple, point2: tuple) -> tuple:
-    return (point1[0] - point2[0], point1[1] - point2[1])
+def GetVector(pointEnd: tuple, pointStart: tuple) -> tuple:
+    return (pointEnd[0] - pointStart[0], pointEnd[1] - pointStart[1])
 
 def GetMagnitude(point: tuple) -> float:
-    return max(0.000000001, math.sqrt((point[0] * point[0]) + (point[1] * point[1])))
+    return math.sqrt((point[0] * point[0]) + (point[1] * point[1]))
 
 def GetNormalized(point: tuple) -> tuple:
     factor = GetMagnitude(point)
+    if factor == 0:
+        return point
     return (point[0] / factor, point[1] / factor)
 
-def Multiply(point1: tuple, point2: tuple) -> float:
+def DotVector(point1: tuple, point2: tuple) -> float:
     return (point1[0] * point2[0]) + (point1[1] * point2[1])
 
 def GetAngle(point1: tuple, point2: tuple) -> float:
-    return math.degrees(math.acos(Multiply(point1, point2) / (GetMagnitude(point1) * GetMagnitude(point2))))
+    MagXMag = GetMagnitude(point1) * GetMagnitude(point2)
+    if MagXMag == 0:
+        return 0
+    return math.degrees(math.acos(DotVector(point1, point2) / MagXMag))
 
 #targets = [(0, 0), (-100, 100), (-120, 120), (150, 150)]
 targets = [(0, 0), (100, 0), (100, 100), (0, 100)]
@@ -104,11 +119,11 @@ def GoToNextPosition(index: int):
     wait(500)
     robot.straight(driveDistance)
 
-while True:
-    for i in range(1, len(targets)):
-        GoToNextPosition(i)
-        currentTarget = i
-    currentTarget = 0
+#while True:
+#    for i in range(1, len(targets)):
+#        GoToNextPosition(i)
+#        currentTarget = i
+#    currentTarget = 0
 
 ev3.screen.draw_image(0, 0, ImageFile.AWAKE)
 floorcolor = ColorHDR.fromColorSensor(left_light)
@@ -119,7 +134,10 @@ print(linecolor.Color)
 print(floorcolor.Color)
 print(compare.UseRGB)
 print(compare.UseReflection)
+print("-- READY --")
 #ev3.speaker.play_file(SoundFile.READY)
+
+raise Exception("Done")
 
 def AlignSingleSensor(floorcolor: ColorHDR, linecolor: ColorHDR, lineSensor: ColorSensor, compare: ColorCompareUsage):
     sensorColor = ColorHDR.fromColorSensor(lineSensor)
@@ -234,14 +252,11 @@ def StraightUntilLine(floorcolor: ColorHDR, linecolor: ColorHDR) -> bool:
     return leftDetectLine
 
 floorcolorReflection = floorcolor.reflection()
-floorcolorReflection = 40
 linecolorReflection = linecolor.reflection()
 lineHasLowerReflection = linecolorReflection < floorcolorReflection
 
 def IsLineColor(reflection: int) -> bool:
-    #print(reflection + 5)
-    #print(floorcolorReflection)
-    return reflection + 5 < floorcolorReflection 
+    return reflection + 5 < floorcolorReflection
     return reflection <= linecolorReflection + 10
     return reflection > floorcolorReflection or (lineHasLowerReflection and reflection <= linecolorReflection)
 
@@ -266,10 +281,10 @@ def SingleSensorRun():
     right_reflection = right_light.reflection()
     left_reflection = left_light.reflection()
     if not IsLineColor(right_reflection):
-        robot.drive(100,0)
+        robot.drive(100, 0)
     elif IsLineColor(right_reflection):
-        while(IsLineColor(right_light.reflection())):
-            robot.drive(50,50)
+        while IsLineColor(right_light.reflection()):
+            robot.drive(50, 50)
             wait(1)
     if IsLineColor(left_reflection):
         Park()

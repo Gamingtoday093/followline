@@ -2,6 +2,7 @@ from pybricks.ev3devices import ColorSensor
 
 EQUALS_TOLERANCE = 2
 LINE_BIAS = 1 / 3
+INTERVAL_TOLERANCE_FACTOR = 20 / 40 # 20: observed interval of average value 40
 
 class ColorCompareUsage:
     def __init__(self, useRGB: bool, rgb: tuple[int, int, int], useReflection: bool, reflection: int) -> None:
@@ -50,33 +51,22 @@ class ColorHDR:
 
     @staticmethod
     def equals(color1: int, color2: int) -> bool:
-        #print(str(color1) + " - " + str(color2))
-        if color1 < 0 or color2 < 0:
-            print(str(color1) + " - " + str(color2))
-            return True
         offset = color1 - color2
-        return offset <= int(color1 / 2) and offset >= -int(color1 / 2)
+        interval = (max(color1, color2) * INTERVAL_TOLERANCE_FACTOR) + 1
+        return offset <= interval and offset >= -interval
     
     #Detectable colors
     def __eq__(self, __value: object) -> bool:
         if not isinstance(__value, ColorHDR):
             return False
         
-        #for c in range(len(self.rgb())):
-        #    if not ColorHDR.equals(self.rgb()[c], __value.rgb()[c]):
-        #        return False
+        #if ColorHDR.equals(self.reflection(), __value.reflection()):
+        #    for c in range(len(self.rgb())):
+        #        if not ColorHDR.equals(self.rgb()[c], __value.rgb()[c]):
+        #            return False
+        #    return True
         
-        if not ColorHDR.equals(self.reflection(), __value.reflection()):
-            return False
-
-        #for c in range(len(self.Color)):
-        #    #offset = self.Color[c] - __value.Color[c]
-        #    #if offset > EQUALS_TOLERENCE or offset < -EQUALS_TOLERENCE:
-        #    #    return False
-        #    if not ColorHDR.equals(self.Color[c], __value.Color[c]):
-        #        return False
-
-        return True
+        return ColorHDR.equals(self.reflection(), __value.reflection())
     
     def almostEqual(self, sensorColor: object, other: object) -> bool:
         return self.__eq__(sensorColor)
