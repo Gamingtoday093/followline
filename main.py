@@ -7,8 +7,9 @@ from pybricks.tools import wait, StopWatch, DataLog
 from pybricks.robotics import DriveBase
 from pybricks.media.ev3dev import SoundFile, ImageFile
 
-from ColorDetection import ColorHDR, ColorCompareUsage
+from ColorDetection import ColorHDR, ColorCompareUsage, ColorfromSensor
 import math
+import time
 
 # This program requires LEGO EV3 MicroPython v2.0 or higher.
 # Click "Open user guide" on the EV3 extension tab for more information.
@@ -101,7 +102,7 @@ def DotVector(point1: tuple, point2: tuple) -> float:
 def GetAngle(point1: tuple, point2: tuple) -> float:
     MagXMag = GetMagnitude(point1) * GetMagnitude(point2)
     if MagXMag == 0:
-        return 0
+        MagXMag = 0.00000001
     return math.degrees(math.acos(DotVector(point1, point2) / MagXMag))
 
 #targets = [(0, 0), (-100, 100), (-120, 120), (150, 150)]
@@ -255,6 +256,7 @@ linecolorReflection = linecolor.reflection()
 lineHasLowerReflection = linecolorReflection < floorcolorReflection
 
 def IsLineColor(reflection: int) -> bool:
+    return reflection > floorcolorReflection + 5
     return reflection + 5 < floorcolorReflection
     return reflection <= linecolorReflection + 10
     return reflection > floorcolorReflection or (lineHasLowerReflection and reflection <= linecolorReflection)
@@ -314,7 +316,7 @@ def SingleSensorRun():
             #        robot.drive(75,-75)
              #       Turning = 0
     #if IsLineColor(left_reflection) and ParkTimer == 0:
-        pass
+       # pass
        # if Park():
        #     wait(500)
        #     ParkTimer=500
@@ -364,6 +366,16 @@ def SingleSensorRun():
     #        robot.drive(50, -15)
     #        wait(1001)
       #  robot.reset()
+      
+def invlerp (a, b, v):
+    return (v - a) / (b - a)
+
+def SingleSensorDrive():
+    right_reflection = right_light.reflection()
+    if IsLineColor(right_reflection):
+        robot.drive(100, 45)
+    else:
+        robot.drive(100, -45)
 
 def Park():
     robot.stop()
@@ -421,10 +433,12 @@ while True:
         #print(floorcolorReflection)
         #print(linecolorReflection)
         oldIsLine = newIsLine
-        
-    SingleSensorRun()
+
+    SingleSensorDrive()
+    #SingleSensorRun()
     
     #robot.drive(50, 0)
 
 
 Start(Speedmode=False)
+
