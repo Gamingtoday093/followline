@@ -102,7 +102,7 @@ def DotVector(point1: tuple, point2: tuple) -> float:
 def GetAngle(point1: tuple, point2: tuple) -> float:
     MagXMag = GetMagnitude(point1) * GetMagnitude(point2)
     if MagXMag == 0:
-        return 0
+        MagXMag = 0.00000001
     return math.degrees(math.acos(DotVector(point1, point2) / MagXMag))
 
 #targets = [(0, 0), (-100, 100), (-120, 120), (150, 150)]
@@ -366,6 +366,16 @@ def SingleSensorRun():
     #        robot.drive(50, -15)
     #        wait(1001)
       #  robot.reset()
+      
+def invlerp (a, b, v):
+    return (v - a) / (b - a)
+
+def SingleSensorDrive():
+    right_reflection = right_light.reflection()
+    if IsLineColor(right_reflection):
+        robot.drive(100, 45)
+    else:
+        robot.drive(100, -45)
 
 def invlerp (a, b, v):
     return (v - a) / (b - a)
