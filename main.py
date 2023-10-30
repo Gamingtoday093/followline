@@ -7,8 +7,9 @@ from pybricks.tools import wait, StopWatch, DataLog
 from pybricks.robotics import DriveBase
 from pybricks.media.ev3dev import SoundFile, ImageFile
 
-from ColorDetection import ColorHDR, ColorCompareUsage
+from ColorDetection import ColorHDR, ColorCompareUsage, ColorfromSensor
 import math
+import time
 
 # This program requires LEGO EV3 MicroPython v2.0 or higher.
 # Click "Open user guide" on the EV3 extension tab for more information.
@@ -255,6 +256,7 @@ linecolorReflection = linecolor.reflection()
 lineHasLowerReflection = linecolorReflection < floorcolorReflection
 
 def IsLineColor(reflection: int) -> bool:
+    return reflection > floorcolorReflection + 5
     return reflection + 5 < floorcolorReflection
     return reflection <= linecolorReflection + 10
     return reflection > floorcolorReflection or (lineHasLowerReflection and reflection <= linecolorReflection)
@@ -314,7 +316,7 @@ def SingleSensorRun():
             #        robot.drive(75,-75)
              #       Turning = 0
     #if IsLineColor(left_reflection) and ParkTimer == 0:
-        pass
+       # pass
        # if Park():
        #     wait(500)
        #     ParkTimer=500
@@ -365,6 +367,45 @@ def SingleSensorRun():
     #        wait(1001)
       #  robot.reset()
 
+def invlerp (a, b, v):
+    return (v - a) / (b - a)
+
+def SingleSensorDrive():
+    right_reflection = right_light.reflection()
+    left_reflection = left_light.reflection()
+    speed = 100
+    turning_rate = 60
+    # if sonar.distance() < 350 and speed > 0:
+    #     speed = 100
+    #     speed = speed * (sonar.distance() / 350)
+    #     speed -= 25
+
+    if sonar.distance() < 350:
+        
+        speed *= invlerp(75, 350, sonar.distance())
+
+    print(speed)
+    if speed <= 10:
+        robot.stop()
+        return
+
+        
+
+    if IsLineColor(left_reflection):
+        Park()
+        wait(5000)
+        UnPark()
+
+    else:
+
+        if IsLineColor(right_reflection):
+            while IsLineColor(right_light.reflection()):
+                robot.drive(speed * 0.5, turning_rate + 10)
+                wait(1)
+        else:
+            robot.drive(speed, -turning_rate)
+            wait(1)
+
 def Park():
     robot.stop()
     robot.turn(-45)
@@ -375,14 +416,14 @@ def Park():
         wait(500)
         robot.drive(90, 0)
         #robot.drive(10, -45)
-        wait(2000)
+        wait(1500)
         robot.stop()
         #wait(1001) #Park time
         robot.turn(-90)
         wait(500)
         #robot.drive(-10, -45)
         robot.drive(100, 0)
-        wait(1000)
+        wait(2000)
         robot.stop()
         return True
     else:
@@ -392,10 +433,12 @@ def Park():
 
 def UnPark():
     robot.drive(-100, 0)
-    wait(1100)
+    wait(2100)
     robot.stop()
     robot.turn(90)
     wait(500)
+    robot.drive(-50, 0)
+    wait(1000)
     robot.stop()
 
 
@@ -421,10 +464,12 @@ while True:
         #print(floorcolorReflection)
         #print(linecolorReflection)
         oldIsLine = newIsLine
-        
-    SingleSensorRun()
+
+    SingleSensorDrive()
+    #SingleSensorRun()
     
     #robot.drive(50, 0)
 
 
 Start(Speedmode=False)
+
