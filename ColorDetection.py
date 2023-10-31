@@ -5,7 +5,8 @@ EQUALS_TOLERANCE = 2
 LINE_BIAS = 1 / 3
 INTERVAL_TOLERANCE_FACTOR = 20 / 40 # 20: observed interval of average value 40
 
-DISTANCE_TOLERANCE_SQR = 4**2
+DISTANCE_TOLERANCE_SQR = 4**2 # Black Table
+#DISTANCE_TOLERANCE_SQR = 40**2 # White Table
 
 class ColorCompareUsage:
     def __init__(self, useRGB: bool, rgb: tuple[int, int, int], useReflection: bool, reflection: int) -> None:
@@ -13,6 +14,73 @@ class ColorCompareUsage:
         self.RGB = rgb
         self.UseReflection = useReflection
         self.Reflection = reflection
+
+def Color(rgb: tuple[int, int, int], reflection: int) -> list:
+    return [rgb[0], rgb[1], rgb[2], reflection]
+
+def ColorGetRGB(color: list) -> tuple:
+    return (color[0], color[1], color[2])
+
+def ColorGetReflection(color: list) -> int:
+    return color[3]
+
+def ColorfromSensor(sensor: ColorSensor, compare: ColorCompareUsage = None) -> list:
+    rgb = (0, 0, 0)
+    if compare is None or compare.UseRGB:
+        rgb = sensor.rgb()
+    else:
+        rgb = compare.RGB
+    reflection = 0
+    if compare is None or compare.UseReflection:
+        reflection = sensor.reflection()
+    else:
+        reflection = compare.Reflection
+
+    return [rgb[0], rgb[1], rgb[2], reflection]
+
+def IsNoneColor(color: list) -> bool:
+    for c in color:
+        if c != 0:
+            return False
+    return True
+
+def ColorDistanceRGBSqr(color1: list, color2: list) -> int:
+    return (color1[0] - color2[0])**2 + (color1[1] - color2[1])**2 + (color1[2] - color2[2])**2
+
+def ColorDistanceReflectionSqr(color1: list, color2: list) -> int:
+    return (color1[3] - color2[3])**2
+
+def ValueDistanceSqr(value1: int, value2: int) -> int:
+    return (value1 - value2)**2
+
+def ColorDistanceSqr(color1: list, color2: list, compare: ColorCompareUsage = None) -> int:
+    if compare is None:
+        return ColorDistanceRGBSqr(color1, color2) + ColorDistanceReflectionSqr(color1, color2)
+
+    if compare.UseRGB:
+        return ColorDistanceRGBSqr(color1, color2)
+    else:
+        return ColorDistanceReflectionSqr(color1, color2)
+
+def ColorDistanceEquals(color1: list, color2: list, compare: ColorCompareUsage = None) -> bool:
+    return ColorDistanceSqr(color1, color2, compare) > DISTANCE_TOLERANCE_SQR
+
+def ColorCompare(color1: list, color2: list) -> ColorCompareUsage:
+    """ ColorCompare(Color, Color) -> ColorCompareUsage: bool, int, bool, int
+        Returns:
+        ColorCompareUsage which consists of 2 bools that describe what sensors are important and 2 ints for their replacement values
+    """
+
+    useRGB = ColorDistanceRGBSqr(color1, color2) > DISTANCE_TOLERANCE_SQR
+    useReflection = ColorDistanceReflectionSqr(color1, color2) > DISTANCE_TOLERANCE_SQR
+
+    if not useRGB and not useReflection:
+        useReflection = True
+        print("Fuck! Failed to find any different comparable Colors!")
+    elif useRGB and useReflection:
+        useRGB = False
+
+    return ColorCompareUsage(useRGB, ColorGetRGB(color1), useReflection, ColorGetReflection(color1))
 
 class ColorHDR:
     def __init__(self, rgb: tuple[int, int, int], reflection: int):
@@ -63,6 +131,9 @@ class ColorHDR:
         if not isinstance(__value, ColorHDR):
             return False
         
+        #print(math.sqrt(ColorDistanceSqr(self.Color, __value.Color)))
+        return ColorDistanceSqr(self.Color, __value.Color) <= DISTANCE_TOLERANCE_SQR
+
         if ColorHDR.equals(self.reflection(), __value.reflection()):
             for c in range(len(self.rgb())):
                 if not ColorHDR.equals(self.rgb()[c], __value.rgb()[c]):
@@ -115,7 +186,7 @@ class ColorHDR:
         """
         return self.Color[3]
 
-    def NoneColor(self):
+    def NoneColor(self) -> bool:
         for c in self.Color:
             if c != 0:
                 return False
@@ -123,11 +194,14 @@ class ColorHDR:
 
     @staticmethod
     def compare(color1, color2) -> ColorCompareUsage:
-        """ compare(ColorHDR, ColorHDR) -> ColorCompareUsage: bool, bool, bool
+        """ compare(ColorHDR, ColorHDR) -> ColorCompareUsage: bool, bool
 
             Returns:
-            ColorCompareUsage which consists of 3 bools that describe what sensors are important
+            ColorCompareUsage which consists of 2 bools that describe what sensors are important and 2 ints for their replacement values
         """
+
+        return ColorCompare(color1.Color, color2.Color)
+
         useRGB = False
         useReflection = False
 
@@ -143,64 +217,3 @@ class ColorHDR:
         elif useRGB and useReflection:
             useRGB = False
         return ColorCompareUsage(useRGB, color1.rgb(), useReflection, color1.reflection())
-        
-def Color(rgb: tuple[int, int, int], reflection: int) -> list:
-    return [rgb[0], rgb[1], rgb[2], reflection]
-
-def ColorGetRGB(color: list) -> tuple:
-    return (color[0], color[1], color[2])
-
-def ColorGetReflection(color: list) -> int:
-    return color[3]
-
-def ColorfromSensor(sensor: ColorSensor, compare: ColorCompareUsage = None) -> list:
-    rgb = (0, 0, 0)
-    if compare is None or compare.UseRGB:
-        rgb = sensor.rgb()
-    else:
-        rgb = compare.RGB
-    reflection = 0
-    if compare is None or compare.UseReflection:
-        reflection = sensor.reflection()
-    else:
-        reflection = compare.Reflection
-
-    return [rgb[0], rgb[1], rgb[2], reflection]
-
-def IsNoneColor(color: list) -> bool:
-    for c in color:
-        if c != 0:
-            return False
-    return True
-
-def ColorDistanceRGBSqr(color1: list, color2: list) -> int:
-    return (color1[0] - color2[0])**2 + (color1[1] - color2[1])**2 + (color1[2] - color2[2])**2
-
-def ColorDistanceReflectionSqr(color1: list, color2: list) -> int:
-    return (color1[3] - color2[3])**2
-
-def ColorDistanceSqr(color1: list, color2: list, compare: ColorCompareUsage = None) -> int:
-    if compare is None:
-        return ColorDistanceRGBSqr(color1, color2) + ColorDistanceReflectionSqr(color1, color2)
-
-    if compare.UseRGB:
-        return ColorDistanceRGBSqr(color1, color2)
-    else:
-        return ColorDistanceReflectionSqr(color1, color2)
-
-def ColorCompare(color1: list, color2: list) -> ColorCompareUsage:
-    """ ColorCompare(Color, Color) -> ColorCompareUsage: bool, int, bool, int
-        Returns:
-        ColorCompareUsage which consists of 2 bools that describe what sensors are important and 2 ints for their replacement values
-    """
-
-    useRGB = ColorDistanceRGBSqr(color1, color2) > DISTANCE_TOLERANCE_SQR
-    useReflection = ColorDistanceReflectionSqr(color1, color2) > DISTANCE_TOLERANCE_SQR
-
-    if not useRGB and not useReflection:
-        useReflection = True
-        print("Fuck! Failed to find any different comparable Colors!")
-    elif useRGB and useReflection:
-        useRGB = False
-
-    return ColorCompareUsage(useRGB, ColorGetRGB(color1), useReflection, ColorGetReflection(color1))

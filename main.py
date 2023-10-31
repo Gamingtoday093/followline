@@ -7,9 +7,8 @@ from pybricks.tools import wait, StopWatch, DataLog
 from pybricks.robotics import DriveBase
 from pybricks.media.ev3dev import SoundFile, ImageFile
 
-from ColorDetection import ColorHDR, ColorCompareUsage, ColorfromSensor
+from ColorDetection import ColorHDR, ColorCompareUsage, ColorDistanceRGBSqr, ValueDistanceSqr
 import math
-import time
 
 # This program requires LEGO EV3 MicroPython v2.0 or higher.
 # Click "Open user guide" on the EV3 extension tab for more information.
@@ -56,9 +55,8 @@ def SearchLineColor(floorcolor: ColorHDR) -> ColorHDR:
     color = ColorHDR.fromColorSensor(right_light)
     while color == floorcolor:
         robot.drive(100, 0)
-        print(color.Color)
         color.updateFromColorSensor(right_light)
-        if color.NoneColor() or ColorHDR.fromColorSensor(left_light).NoneColor():
+        if color.NoneColor() or ColorHDR.fromColorSensor(left_light).NoneColor() or sonar.distance() < 100:
             robot.drive(-100, 0)
             wait(1000)
             robot.turn(90)
@@ -131,29 +129,16 @@ floorcolor = ColorHDR.fromColorSensor(left_light)
 ev3.speaker.beep()
 linecolor = FindLineColor(floorcolor)
 compare = ColorHDR.compare(floorcolor, linecolor)
-print(linecolor.Color)
-print(floorcolor.Color)
-print(compare.UseRGB)
-print(compare.UseReflection)
+print("Line: RGB {0} Reflection ({1})".format(linecolor.rgb(), linecolor.reflection()))
+print("Floor: RGB {0} Reflection ({1})".format(floorcolor.rgb(), floorcolor.reflection()))
+print("Use RGB: {}".format(compare.UseRGB))
+print("Use Reflection: {}".format(compare.UseReflection))
 print("-- READY --")
 #ev3.speaker.play_file(SoundFile.READY)
 
 
-def AlignSingleSensor(floorcolor: ColorHDR, linecolor: ColorHDR, lineSensor: ColorSensor, compare: ColorCompareUsage):
-    sensorColor = ColorHDR.fromColorSensor(lineSensor)
-    while linecolor.almostEqual(sensorColor, floorcolor):
-        robot.drive(100, 0)
-        sensorColor.updateFromColorSensor(linecolor)
-        wait(1)
-    
-    rotMultiplier = 1
-    if lineSensor == left_light:
-        rotMultiplier = -1
-
-    while not linecolor.almostEqual(sensorColor, floorcolor):
-        robot.drive(0, rotMultiplier * 90)
-        sensorColor.updateFromColorSensor(linecolor)
-        wait(1)
+def AlignSingleSensor():
+    robot.turn(20)
 
 def AlignTowardsLine(floorcolor: ColorHDR, linecolor: ColorHDR, compare: ColorCompareUsage):
     while not linecolor.almostEqual(ColorHDR.fromColorSensor(left_light, compare), floorcolor):
@@ -251,7 +236,9 @@ def StraightUntilLine(floorcolor: ColorHDR, linecolor: ColorHDR) -> bool:
 
     return leftDetectLine
 
+floorcolorRGB = floorcolor.rgb()
 floorcolorReflection = floorcolor.reflection()
+linecolorRGB = linecolor.rgb()
 linecolorReflection = linecolor.reflection()
 lineHasLowerReflection = linecolorReflection < floorcolorReflection
 
@@ -263,11 +250,18 @@ def IsLineColor(reflection: int) -> bool:
 
 lineRGB = linecolor.rgb()
 def isLineColorRGB(rgb):
-    for i in range(len(rgb)): 
-        if not ColorHDR.equals(rgb[i],lineRGB[i]):
+    for i in range(len(rgb)):
+        if not ColorHDR.equals(rgb[i], lineRGB[i]):
             return False
     return True
-            
+
+def IsLineColorDistance(sensor: ColorSensor, compare: ColorCompareUsage):
+    if compare.UseRGB:
+        rgb = sensor.rgb()
+        return ColorDistanceRGBSqr(rgb, linecolorRGB) < ColorDistanceRGBSqr(rgb, floorcolorRGB)
+    else:
+        reflection = sensor.reflection()
+        return ValueDistanceSqr(reflection, linecolorReflection) < ValueDistanceSqr(reflection, floorcolorReflection)
 
 
 def DriveAndTurnFast():
@@ -285,201 +279,92 @@ def DriveAndTurnFast():
             robot.drive(100, 140)
             wait(1)
 
-#AlignSingleSensor(floorcolor, linecolor, right_light, compare)
-#Align(floorcolor, linecolor, compare)
-global ParkTimer
-global Turning
-Turning = 0
-ParkTimer = 0
 
-def SingleSensorRun():
-    #right_reflection = right_light.reflection()
-    #left_reflection = left_light.reflection()
-    global ParkTimer 
-    if(ParkTimer > 0):
-       print (ParkTimer)
-   # if IsLineColor(right_reflection):
-    if isLineColorRGB(right_light.rgb()):
-        robot.drive(100,0)
-    #elif not IsLineColor(right_reflection):
-    elif not isLineColorRGB(right_light.rgb()):
-        startAngle = robot.angle()
-        while(not isLineColorRGB(right_light.rgb()) and GetAngleBetween(startAngle, robot.angle())<30):
-            robot.drive(75,75)
-            print(GetAngleBetween(startAngle, robot.angle()))
-            wait(1)
-        while not isLineColorRGB(right_light.rgb()):
-            robot.drive(75,-75)
-            wait(1)
-           # if (G == 30):
-           #     while(not IsLineColor(right_light.reflection()) and Turning > 0):
-            #        robot.drive(75,-75)
-             #       Turning = 0
-    #if IsLineColor(left_reflection) and ParkTimer == 0:
-       # pass
-       # if Park():
-       #     wait(500)
-       #     ParkTimer=500
-       #     ev3.speaker.play_file(SoundFile.READY)
-       #     UnPark()
-       #     ev3.speaker.beep()
- 
-    #if(ParkTimer > 0):
-    #    ParkTimer = ParkTimer-1
-    #wait(1)
-        #UnPark()
-    #elif IsLineColor(right_reflection) and turn == -1:
-    #    robot.drive(0,-50);
-    #    wait(100)
-    #    turn = -1;
-    
-    #if IsLineColor(left_reflection):
-    #    if Park():
-    #        wait(1500)
-    #        UnPark()
-    #        wait(2000)
-    #elif IsLineColor(right_reflection):
-    #    robot.drive(50, 0)
-    #    wait(1)
-    
-    #else:
-        #robot.stop()
-        #robot.drive(0, -75)
-        #wait(1)
-        #robot.drive(50, 25)
-        #wait(1)
-        #while not IsLineColor(right_reflection):
-            #robot.drive(50, 15)
-            #wait(1)
-    #elif not IsLineColor(right_reflection):
-    #    robot.stop()
-    #    robot.drive(0, -75)
-    #    wait(1)
-    #    while IsLineColor(right_reflection):
-    #        robot.drive(50, 15)
-    #        wait(1001)
-    #elif not IsLineColor(right_reflection):
-    #    robot.stop()
-    #    robot.drive(0, 75)
-    #    wait(1)
-    #    while IsLineColor(right_reflection):
-    #        robot.drive(50, -15)
-    #        wait(1001)
-      #  robot.reset()
-      
-def invlerp (a, b, v):
+def invLerp(a, b, v):
     return (v - a) / (b - a)
 
 def SingleSensorDrive():
-    right_reflection = right_light.reflection()
-    if IsLineColor(right_reflection):
-        robot.drive(100, 45)
-    else:
-        robot.drive(100, -45)
-
-def invlerp (a, b, v):
-    return (v - a) / (b - a)
-
-def SingleSensorDrive():
-    right_reflection = right_light.reflection()
-    left_reflection = left_light.reflection()
     speed = 100
     turning_rate = 60
-    # if sonar.distance() < 350 and speed > 0:
-    #     speed = 100
-    #     speed = speed * (sonar.distance() / 350)
-    #     speed -= 25
 
-    if sonar.distance() < 350:
-        
-        speed *= invlerp(75, 350, sonar.distance())
+    distance = sonar.distance()
+    if distance < 350:
+        speed *= invLerp(100, 350, distance)
 
-    print(speed)
     if speed <= 10:
         robot.stop()
         return
 
-        
-
-    if IsLineColor(left_reflection):
-        Park()
-        wait(5000)
-        UnPark()
-
-    else:
-
-        if IsLineColor(right_reflection):
-            while IsLineColor(right_light.reflection()):
-                robot.drive(speed * 0.5, turning_rate + 10)
-                wait(1)
-        else:
-            robot.drive(speed, -turning_rate)
+    if IsLineColorDistance(left_light, compare):
+        if Park():
+            wait(5000)
+            UnPark()
+    elif IsLineColorDistance(right_light, compare):
+        #while IsLineColor(right_light.reflection()):
+        while IsLineColorDistance(right_light, compare):
+            robot.drive(speed * 0.5, turning_rate + 10)
             wait(1)
+    else:
+        robot.drive(speed, -turning_rate)
+        wait(1)
 
 def Park():
     robot.stop()
-    robot.turn(-45)
+    robot.turn(-50)
     wait(500)
-    print (sonar.distance())
     if sonar.distance() >= 350: # Parking spot Empty
-        robot.turn(45)
+        robot.turn(50)
         wait(500)
         robot.drive(90, 0)
-        #robot.drive(10, -45)
-        wait(1500)
+        wait(1650)
         robot.stop()
-        #wait(1001) #Park time
         robot.turn(-90)
         wait(500)
-        #robot.drive(-10, -45)
+        if sonar.distance() < 350: # Deep Parked, Parking spot Taken
+            robot.turn(90)
+            wait(500)
+            return False
         robot.drive(100, 0)
-        wait(2000)
+        wait(2200)
         robot.stop()
         return True
-    else:
-        robot.turn(45)
+    else: # Parking spot Taken
+        robot.turn(50)
+        wait(500)
+        robot.drive(90, 0)
+        wait(1000)
         robot.stop()
         return False
 
 def UnPark():
     robot.drive(-100, 0)
-    wait(2100)
+    wait(2350)
     robot.stop()
     robot.turn(90)
     wait(500)
-    robot.drive(-50, 0)
-    wait(1000)
     robot.stop()
 
-
-#Align(floorcolor, linecolor, compare)
+Align(floorcolor, linecolor, compare)
+#AlignSingleSensor()
 #ev3.speaker.play_file(SoundFile.KUNG_FU)
 
-#def Start(Speedmode: bool):
-#   if Speedmode: # Speedmode
-#      while True:
-#         DriveAndTurnFast()
-#    else: # Linemode
-#        while True:
-#            leftTriggered = StraightUntilLine(floorcolor, linecolor)
-#            RotateAtIntersection(floorcolor, linecolor, compare, leftTriggered)
+def Start(Speedmode: bool):
+    if Speedmode: # Speedmode
+        while True:
+            DriveAndTurnFast()
+    else: # Linemode
+        while True:
+            leftTriggered = StraightUntilLine(floorcolor, linecolor)
+            RotateAtIntersection(floorcolor, linecolor, compare, leftTriggered)
 
 oldIsLine = False
 while True:
-    #wait(800)
-    newIsLine = IsLineColor(right_light.reflection())
+    newIsLine = IsLineColorDistance(right_light, compare)
     if newIsLine != oldIsLine:
         print(newIsLine)
-        #print(right_light.reflection())
-        #print(floorcolorReflection)
-        #print(linecolorReflection)
         oldIsLine = newIsLine
 
     SingleSensorDrive()
-    #SingleSensorRun()
-    
-    #robot.drive(50, 0)
 
 
 Start(Speedmode=False)
-
