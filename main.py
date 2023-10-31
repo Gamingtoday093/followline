@@ -348,23 +348,27 @@ Align(floorcolor, linecolor, compare)
 #AlignSingleSensor()
 #ev3.speaker.play_file(SoundFile.KUNG_FU)
 
-def Start(Speedmode: bool):
-    if Speedmode: # Speedmode
-        while True:
-            DriveAndTurnFast()
-    else: # Linemode
-        while True:
-            leftTriggered = StraightUntilLine(floorcolor, linecolor)
-            RotateAtIntersection(floorcolor, linecolor, compare, leftTriggered)
+#def Start(Speedmode: bool):
+#    if Speedmode: # Speedmode
+#        while True:
+#            DriveAndTurnFast()
+#    else: # Linemode
+#        while True:
+#            leftTriggered = StraightUntilLine(floorcolor, linecolor)
+#            RotateAtIntersection(floorcolor, linecolor, compare, leftTriggered)
 
-oldIsLine = False
-while True:
-    newIsLine = IsLineColorDistance(right_light, compare)
-    if newIsLine != oldIsLine:
-        print(newIsLine)
-        oldIsLine = newIsLine
+def Start():
+    while True:
+        SingleSensorDrive()
 
-    SingleSensorDrive()
+#oldIsLine = False
+#while True:
+#    newIsLine = IsLineColorDistance(right_light, compare)
+#    if newIsLine != oldIsLine:
+#        print(newIsLine)
+#        oldIsLine = newIsLine
+#
+#    SingleSensorDrive()
 
 
-Start(Speedmode=False)
+Start()
