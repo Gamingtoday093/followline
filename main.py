@@ -138,7 +138,7 @@ print("-- READY --")
 
 
 def AlignSingleSensor():
-    robot.turn(20)
+    robot.turn(10)
 
 def AlignTowardsLine(floorcolor: ColorHDR, linecolor: ColorHDR, compare: ColorCompareUsage):
     while not linecolor.almostEqual(ColorHDR.fromColorSensor(left_light, compare), floorcolor):
@@ -293,6 +293,7 @@ def SingleSensorDrive():
 
     if speed <= 10:
         robot.stop()
+        wait(500)
         return
 
     if IsLineColorDistance(left_light, compare):
@@ -312,20 +313,42 @@ def Park():
     robot.stop()
     robot.turn(-50)
     wait(500)
+    robot.stop()
     if sonar.distance() >= 350: # Parking spot Empty
         robot.turn(50)
         wait(500)
+
+        # Validate Parking spot
+        startPosition = robot.distance()
         robot.drive(90, 0)
-        wait(1650)
+        wait(300)
+        foundLineAgain = IsLineColorDistance(left_light, compare)
+        while not ColorHDR.fromColorSensor(left_light).NoneColor() and not foundLineAgain and robot.distance() - startPosition < 250:
+            robot.drive(90, -30)
+            if IsLineColorDistance(right_light, compare):
+                robot.turn(10)
+            wait(1)
+            foundLineAgain = IsLineColorDistance(left_light, compare)
+
+        if not foundLineAgain:
+            #robot.drive(-100, 0)
+            #wait(1800)
+            return False
+        
+        robot.straight(-(robot.distance() - startPosition))
+        # - - -
+
+        robot.drive(90, 0)
+        wait(1800)
         robot.stop()
         robot.turn(-90)
         wait(500)
-        if sonar.distance() < 350: # Deep Parked, Parking spot Taken
-            robot.turn(90)
-            wait(500)
-            return False
+        #if sonar.distance() < 350: # Deep Parked, Parking spot Taken
+        #    robot.turn(90)
+        #    wait(500)
+        #    return False
         robot.drive(100, 0)
-        wait(2200)
+        wait(2000)
         robot.stop()
         return True
     else: # Parking spot Taken
@@ -338,14 +361,15 @@ def Park():
 
 def UnPark():
     robot.drive(-100, 0)
-    wait(2350)
+    wait(2750)
     robot.stop()
     robot.turn(90)
     wait(500)
+    robot.turn(-10)
     robot.stop()
 
-Align(floorcolor, linecolor, compare)
-#AlignSingleSensor()
+#Align(floorcolor, linecolor, compare)
+AlignSingleSensor()
 #ev3.speaker.play_file(SoundFile.KUNG_FU)
 
 #def Start(Speedmode: bool):
