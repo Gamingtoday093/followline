@@ -78,7 +78,7 @@ def ColorCompare(color1: list, color2: list) -> ColorCompareUsage:
         useReflection = True
         print("Fuck! Failed to find any different comparable Colors!")
     elif useRGB and useReflection:
-        useRGB = False
+        useReflection = False
 
     return ColorCompareUsage(useRGB, ColorGetRGB(color1), useReflection, ColorGetReflection(color1))
 

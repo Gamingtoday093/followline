@@ -206,11 +206,12 @@ def SingleSensorDrive():
     if IsLineColorDistance(left_light, compare):
         global lastLine
         
-        if lastLine is not None and robot.distance() - lastLine > 25 and robot.distance() - lastLine < 250:
-            if Park():
+        if lastLine is not None and robot.distance() - lastLine > 120 and robot.distance() - lastLine < 250:
+            print(robot.distance() - lastLine)
+            if Park(robot.distance() - lastLine):
                 wait(5000)
                 UnPark()
-
+        
         lastLine = robot.distance()
     
     if IsLineColorDistance(right_light, compare):
@@ -221,14 +222,21 @@ def SingleSensorDrive():
         robot.drive(speed, -turning_rate)
         wait(1)
 
-def Park() -> bool:
-    robot.stop()
+PARK_DISTANCE = 200
+
+def Park(parkingWidth: int) -> bool:
+    robot.straight(-(parkingWidth / 5))
     robot.turn(-90)
     wait(500)
     robot.stop()
     if sonar.distance() >= 350: # Parking spot Empty
-        robot.drive(100, 0)
-        wait(2000)
+        start = robot.distance()
+        while robot.distance() - start < PARK_DISTANCE:
+            if IsLineColorDistance(right_light, compare):
+                robot.drive(100, -100)
+            else:
+                robot.drive(100, 0)
+            wait(1)
         robot.stop()
         return True
     else: # Parking spot Taken
@@ -240,73 +248,17 @@ def Park() -> bool:
         return False
 
 def UnPark():
-    robot.drive(-100, 0)
-    wait(2250)
+    start = robot.distance()
+    while start - robot.distance() < PARK_DISTANCE + 25:
+        robot.drive(-100, 0)
+        wait(1)
     robot.stop()
     robot.turn(90)
     wait(500)
     robot.turn(-10)
     robot.stop()
 
-#def Park():
-#    robot.stop()
-#    robot.turn(-50)
-#    wait(500)
-#    robot.stop()
-#    if sonar.distance() >= 350: # Parking spot Empty
-#        robot.turn(50)
-#        wait(500)
-#
-#        # Validate Parking spot
-#        startPosition = robot.distance()
-#        robot.drive(90, 0)
-#        wait(300)
-#        foundLineAgain = IsLineColorDistance(left_light, compare)
-#        while not ColorHDR.fromColorSensor(left_light).NoneColor() and not foundLineAgain and robot.distance() - startPosition < 250:
-#            robot.drive(90, -30)
-#            if IsLineColorDistance(right_light, compare):
-#                robot.turn(10)
-#            wait(1)
-#            foundLineAgain = IsLineColorDistance(left_light, compare)
-#
-#        if not foundLineAgain:
-#            #robot.drive(-100, 0)
-#            #wait(1800)
-#            return False
-#        
-#        robot.straight(-(robot.distance() - startPosition))
-#        # - - -
-#
-#        robot.drive(90, 0)
-#        wait(1800)
-#        robot.stop()
-#        robot.turn(-90)
-#        wait(500)
-#        #if sonar.distance() < 350: # Deep Parked, Parking spot Taken
-#        #    robot.turn(90)
-#        #    wait(500)
-#        #    return False
-#        robot.drive(100, 0)
-#        wait(2000)
-#        robot.stop()
-#        return True
-#    else: # Parking spot Taken
-#        robot.turn(50)
-#        wait(500)
-#        robot.drive(90, 0)
-#        wait(1000)
-#        robot.stop()
-#        return False
-
-#def UnPark():
-#    robot.drive(-100, 0)
-#    wait(2750)
-#    robot.stop()
-#    robot.turn(90)
-#    wait(500)
-#    robot.turn(-10)
-#    robot.stop()
-
+#AlignTowardsLine(floorcolor, linecolor, compare)
 Align(floorcolor, linecolor, compare)
 #AlignSingleSensor()
 #ev3.speaker.play_file(SoundFile.KUNG_FU)
@@ -314,15 +266,5 @@ Align(floorcolor, linecolor, compare)
 def Start():
     while True:
         SingleSensorDrive()
-
-#oldIsLine = False
-#while True:
-#    newIsLine = IsLineColorDistance(right_light, compare)
-#    if newIsLine != oldIsLine:
-#        print(newIsLine)
-#        oldIsLine = newIsLine
-#
-#    SingleSensorDrive()
-
 
 Start()
