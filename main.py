@@ -208,7 +208,7 @@ def SingleSensorDrive():
         
         if lastLine is not None and robot.distance() - lastLine > 120 and robot.distance() - lastLine < 250:
             print(robot.distance() - lastLine)
-            if Park(robot.distance() - lastLine):
+            if TryPark(robot.distance() - lastLine):
                 wait(5000)
                 UnPark()
         
@@ -224,7 +224,7 @@ def SingleSensorDrive():
 
 PARK_DISTANCE = 200
 
-def Park(parkingWidth: int) -> bool:
+def TryPark(parkingWidth: int) -> bool:
     robot.straight(-(parkingWidth / 5))
     robot.turn(-90)
     wait(500)
@@ -247,6 +247,20 @@ def Park(parkingWidth: int) -> bool:
         robot.stop()
         return False
 
+def Park(parkingWidth: int):
+    robot.straight(-(parkingWidth / 5))
+    robot.turn(-90)
+    wait(500)
+    robot.stop()
+    start = robot.distance()
+    while robot.distance() - start < PARK_DISTANCE:
+        if IsLineColorDistance(right_light, compare):
+            robot.drive(100, -100)
+        else:
+            robot.drive(100, 0)
+        wait(1)
+    robot.stop()
+
 def UnPark():
     start = robot.distance()
     while start - robot.distance() < PARK_DISTANCE + 25:
@@ -258,13 +272,106 @@ def UnPark():
     robot.turn(-10)
     robot.stop()
 
+def SingleSensorCount(parkingData: list):
+    speed = 100
+    turning_rate = 60
+
+    distance = sonar.distance()
+    if distance < 350:
+        speed *= invLerp(100, 350, distance)
+
+    if speed <= 10:
+        robot.stop()
+        wait(500)
+        return
+
+    if IsLineColorDistance(left_light, compare):
+        global lastLine
+        
+        if lastLine is not None and robot.distance() - lastLine > 120 and robot.distance() - lastLine < 250:
+            parkingData.append(CheckParkEmpty(robot.distance() - lastLine))
+        
+        lastLine = robot.distance()
+    
+    if IsLineColorDistance(right_light, compare):
+        while IsLineColorDistance(right_light, compare):
+            robot.drive(speed * 0.5, turning_rate + 10)
+            wait(1)
+    else:
+        robot.drive(speed, -turning_rate)
+        wait(1)
+
+def CheckParkEmpty(parkingWidth: int) -> bool:
+    robot.straight(-(parkingWidth / 5))
+    robot.turn(-90)
+    wait(500)
+    robot.stop()
+    isEmpty = sonar.distance() >= 350
+    robot.turn(90)
+    wait(500)
+    robot.stop()
+    return isEmpty
+
+global parkIndex
+parkIndex = 0
+
+def SingleSensorCountedDrive(parkingData: list):
+    speed = 100
+    turning_rate = 60
+
+    distance = sonar.distance()
+    if distance < 350:
+        speed *= invLerp(100, 350, distance)
+
+    if speed <= 10:
+        robot.stop()
+        wait(500)
+        return
+
+    if IsLineColorDistance(left_light, compare):
+        global lastLine
+        
+        if lastLine is not None and robot.distance() - lastLine > 120 and robot.distance() - lastLine < 250:
+            global parkIndex
+            if parkingData[parkIndex]: # If the recorded data says this parking spot is empty
+                Park(robot.distance() - lastLine)
+                wait(5000)
+                UnPark()
+
+            if parkIndex >= len(parkingData) - 1: # Prevent index out of range
+                parkIndex = 0
+            else:
+                parkIndex += 1
+        
+        lastLine = robot.distance()
+    
+    if IsLineColorDistance(right_light, compare):
+        while IsLineColorDistance(right_light, compare):
+            robot.drive(speed * 0.5, turning_rate + 10)
+            wait(1)
+    else:
+        robot.drive(speed, -turning_rate)
+        wait(1)
+
 #AlignTowardsLine(floorcolor, linecolor, compare)
 Align(floorcolor, linecolor, compare)
 #AlignSingleSensor()
 #ev3.speaker.play_file(SoundFile.KUNG_FU)
 
 def Start():
+    startAngle = robot.angle()
+    # List booleans of empty parking spots
+    # Where index 0 is the first parking spot
+    # and parkingData[index] = is this spot empty?
+    parkingData = []
+    # Count parking spots while the robot hasnt made a 360 degree turn
+    # Not the most robust way since it will not work in some concave tracks
+    while GetAngleBetween(startAngle, robot.angle()) < 350:
+        SingleSensorCount(parkingData)
+    # Reset lastLine because both functions use the same variable which is eeh coding but it works
+    global lastLine
+    lastLine = None
     while True:
-        SingleSensorDrive()
+        SingleSensorCountedDrive(parkingData)
 
 Start()
