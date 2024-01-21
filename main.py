@@ -124,9 +124,7 @@ def GoToNextPosition(index: int):
 #        currentTarget = i
 #    currentTarget = 0
 
-ev3.screen.draw_image(0, 0, ImageFile.AWAKE)
 floorcolor = ColorHDR.fromColorSensor(left_light)
-ev3.speaker.beep()
 linecolor = FindLineColor(floorcolor)
 compare = ColorHDR.compare(floorcolor, linecolor)
 print("Line: RGB {0} Reflection ({1})".format(linecolor.rgb(), linecolor.reflection()))
@@ -273,7 +271,7 @@ def UnPark():
     robot.stop()
 
 def SingleSensorCount(parkingData: list):
-    speed = 100
+    speed = 50
     turning_rate = 60
 
     distance = sonar.distance()
@@ -290,7 +288,15 @@ def SingleSensorCount(parkingData: list):
         
         if lastLine is not None and robot.distance() - lastLine > 120 and robot.distance() - lastLine < 250:
             parkingData.append(CheckParkEmpty(robot.distance() - lastLine))
-        
+            # Write to screen parkingspot number and !occupied (list index is True when not occupied)
+            
+            for i in range(len(parkingData)):
+                ev3.screen.clear()
+                y_coord = 0
+                string = str(len(parkingData)) + str(parkingData[len(parkingData) - 1])
+                ev3.screen.draw_text(0, y_coord, string)
+                y_coord += 15
+
         lastLine = robot.distance()
     
     if IsLineColorDistance(right_light, compare):
@@ -316,8 +322,9 @@ global parkIndex
 parkIndex = 0
 
 def SingleSensorCountedDrive(parkingData: list):
-    speed = 100
+    speed = 50
     turning_rate = 60
+    p_spot_number = 5
 
     distance = sonar.distance()
     if distance < 350:
@@ -334,9 +341,14 @@ def SingleSensorCountedDrive(parkingData: list):
         if lastLine is not None and robot.distance() - lastLine > 120 and robot.distance() - lastLine < 250:
             global parkIndex
             if parkingData[parkIndex]: # If the recorded data says this parking spot is empty
+                if p_spot_number == len(parkingData):
+                    ev3.speaker.beep()
+                    p_spot_number = 0
                 Park(robot.distance() - lastLine)
                 wait(5000)
                 UnPark()
+            else:
+                ev3.speaker.beep() # Beep if the parking spot is occupied
 
             if parkIndex >= len(parkingData) - 1: # Prevent index out of range
                 parkIndex = 0
@@ -354,7 +366,7 @@ def SingleSensorCountedDrive(parkingData: list):
         wait(1)
 
 #AlignTowardsLine(floorcolor, linecolor, compare)
-Align(floorcolor, linecolor, compare)
+#Align(floorcolor, linecolor, compare)
 #AlignSingleSensor()
 #ev3.speaker.play_file(SoundFile.KUNG_FU)
 
@@ -368,6 +380,9 @@ def Start():
     # Not the most robust way since it will not work in some concave tracks
     while GetAngleBetween(startAngle, robot.angle()) < 350:
         SingleSensorCount(parkingData)
+    
+    # Beep for every parking spot found
+
     # Reset lastLine because both functions use the same variable which is eeh coding but it works
     global lastLine
     lastLine = None

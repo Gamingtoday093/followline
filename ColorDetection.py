@@ -5,8 +5,8 @@ EQUALS_TOLERANCE = 2
 LINE_BIAS = 1 / 3
 INTERVAL_TOLERANCE_FACTOR = 20 / 40 # 20: observed interval of average value 40
 
-DISTANCE_TOLERANCE_SQR = 4**2 # Black Table
-#DISTANCE_TOLERANCE_SQR = 45**2 # White Table
+#DISTANCE_TOLERANCE_SQR = 4**2 # Black Table
+DISTANCE_TOLERANCE_SQR = 45**2 # White Table
 
 class ColorCompareUsage:
     def __init__(self, useRGB: bool, rgb: tuple[int, int, int], useReflection: bool, reflection: int) -> None:
